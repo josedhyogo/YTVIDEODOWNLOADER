@@ -10,6 +10,22 @@ O projeto possui uma **interface gráfica** que permite escolher o formato de ar
 * Permite utilizar pastas que já existem;
 * Barra de progresso durante o download;
 
+## 💿 Instalação
+
+## 1. Clique na aba "Releases" no canto inferior direito
+<img width="1322" height="596" alt="tutorial_instalacao" src="https://github.com/user-attachments/assets/af147ea2-3665-4a8a-90bc-ad48392bee1e" />
+
+## 2. Procure pelo arquivo compactado **"ytdownloadergui.rar"** e clique sobre para baixa-lo
+<img width="1321" height="560" alt="tutorial_instalacao1" src="https://github.com/user-attachments/assets/8128e955-34f0-4c7b-abb2-4e42566e967b" />
+
+## 3. Extraia o arquivo, em seguida abra a pasta **"dist"** e clique duas vezes sobre **"app.exe"**
+<img width="522" height="52" alt="tutorial_instalacao2" src="https://github.com/user-attachments/assets/a863a23f-7f82-4c6f-a4c3-f6b1cf12d766" />
+
+<img width="738" height="38" alt="image" src="https://github.com/user-attachments/assets/0c9af58a-7acb-4509-9c57-b530cfa3771f" />
+
+
+
+
 ## 🖥️ Como usar
 
 ### 1. Selecionando o tipo de arquivo:
@@ -18,6 +34,7 @@ Vídeo = MP4 e Áudio = MP3
 
 1. Clique na opção que deseja fazer o download;
 <img width="553" height="227" alt="tutorial0" src="https://github.com/user-attachments/assets/fd39bc94-a404-4442-b95b-d0044eff0271" />
+
 
 
 ### 2. Adicionando a URL do vídeo/playlist:
