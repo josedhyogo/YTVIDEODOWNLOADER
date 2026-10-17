@@ -58,7 +58,11 @@ def baixarURL(values):
             pasta_base = os.path.dirname(os.path.abspath(__file__)) # CORRIGIDO: abspath evita caminho vazio dependendo de como o script é executado
 
         ffmpeg_path = os.path.join(pasta_base, "ffmpeg") # Junta o caminho da pasta base com o nome "ffmpeg"
-
+        print(ffmpeg_path)
+        exe = os.path.join(ffmpeg_path, "ffmpeg.exe")
+        print(exe)
+        if not os.path.isfile(exe):
+            raise FileNotFoundError(f"ffmpeg.exe não encontrado em: {ffmpeg_path}")
         # CORRIGIDO: removida a chamada juntar(...) que ficava aqui. Ela rodava ANTES do download,
         # em arquivos que ainda não existiam, e derrubava tudo. O yt-dlp já junta sozinho (veja "format" e "merge_output_format").
 
