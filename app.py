@@ -6,90 +6,93 @@ import sys
 
 
 def contarArquivos(values):
-    url = values["URL"]
+    url = values["URL"] #Recebe a url
 
     with yt_dlp.YoutubeDL({
-        "quiet": True,
-        "extract_flat": True
-    }) as ydl:
+        "quiet": True, # Reduz mensagens exibidas no terminal
+        "extract_flat": True # Evita a extração detalhada de informações, trazendo apenas dados superficiais(titulo,id...)
+    }) as ydl: # Cria um objeto chamado "ydl"
 
-        info = ydl.extract_info(url, download=False)
+        info = ydl.extract_info(url, download=False) #Impede o download e realiza apenas a requisição das informações resumidas
 
-    if "entries" in info:
-        return len(info["entries"])
+    if "entries" in info: # Verifica se existe a lista "entries" no dicionário "info"
+        return len(info["entries"]) # Retorna o numero de itens dessa lista
     else:
-        return 1
+        return 1 # Considera que há apenas um vídeo informado na url
 
 
 def mostrarBarraProgresso(num_arquivos, arquivos_baixados):
 
-    sg.one_line_progress_meter(
-        "BAIXANDO...",
-        arquivos_baixados,
-        num_arquivos
-    )
+    sg.one_line_progress_meter( # Função do PySimpleGUI  que mostra o progresso do download
+        "BAIXANDO...", # Título
+        arquivos_baixados, # Progresso atual
+        num_arquivos # Progresso máximo
+    ) # Atenção: essa função não aumenta o progresso a partir tempo dos arquivos sendo baixados, mas sim pela quantidade contabilizada como baixada. 
 
 
 def baixarURL(values):
+    try:
+        url = values["URL"] #Recebe a url
+        pasta = values["PASTA"] #Aramazena o caminho da pasta
 
-    url = values["URL"]
-    pasta = values["PASTA"]
+        num_arquivos = contarArquivos(values) # Recebe o numero de informações
 
-    num_arquivos = contarArquivos(values)
+        def progresso(d): 
+            ids_contados = set()
 
-    arquivos_baixados = 0
+            if d["status"] == "finished": # Verifica se o estado do progresso/download está completo/finalizado
 
-    def progresso(d):
-        nonlocal arquivos_baixados
+                id_videos = d["info-dict"]["id"] # Itera +1 no contador de arquivos para a barra de progresso
+                if id_videos not in ids_contados:
+                    ids_contados.add(id_videos)
 
-        if d["status"] == "finished":
+                    window.write_event_value( # Envia o evento -PROGRESSO- para a janela em loop com os dados nas variaveis de arquivos
+                        "-PROGRESSO-",
+                        (len(id_videos), num_arquivos)
+                    )
 
-            arquivos_baixados += 1
+        # Localiza o FFmpeg
+        if getattr(sys, "frozen", False): # verifica se o sys tem o atributo frozen e se ele vale True (ou seja, se está rodando como executável)”
+            pasta_base = sys._MEIPASS # Define a pasta base 
+        else: # Caso o status retorne FALSE, define a pasta base o diretório onde o script está, para que assim possa encontrar o ffmpeg
+            pasta_base = os.path.dirname(__file__)
 
-            window.write_event_value(
-                "-PROGRESSO-",
-                (arquivos_baixados, num_arquivos)
-            )
+        ffmpeg_path = os.path.join(pasta_base, "ffmpeg") # Junta o caminho da pasta base com o nome "ffmpeg"
 
-    # Localiza o FFmpeg
-    if getattr(sys, "frozen", False):
-        pasta_base = sys._MEIPASS
-    else:
-        pasta_base = os.path.dirname(__file__)
+        options = {
+            "outtmpl": os.path.join(pasta, "%(title)s.%(ext)s"), # Define o titulo do arquivo "texto video/audio" + "extensao" = "Meu video.mp4"
+            "progress_hooks": [progresso],
+            "ignoreerrors": True, # ENquanto TRUE, o download continua mesmo com erro em algum video/audio
+            "ffmpeg_location": ffmpeg_path # Diz ao yt-dlp onde está a pasta do ffmpeg
+        }
+    # Verifica se o status do sys é o atributo frozen 
+        if values["AUDIO"] == True:
 
-    ffmpeg_path = os.path.join(pasta_base, "ffmpeg")
+            options["format"] = "bestaudio" # Pede ao yt-dlp para baixar apenas a melhor faixa de áudio disponível, sem o vídeo.
 
-    options = {
-        "outtmpl": os.path.join(pasta, "%(title)s.%(ext)s"),
-        "progress_hooks": [progresso],
-        "ignoreerrors": True,
-        "ffmpeg_location": ffmpeg_path
-    }
+            options["postprocessors"] = [ # Etapas executadas depois do download
+                { 
+                    "key": "FFmpegExtractAudio", # Usa o Ffmpeg para converter o audio baixado
+                    "preferredcodec": "mp3", # Converte o audio para mp3
+                    "preferredquality": "192" # Define um equilíbrio entre desempenho e qualidade
+                }
+            ]
 
-    if values["AUDIO"] == True:
+        elif values["VIDEO"] == True:
 
-        options["format"] = "bestaudio"
+            options["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" # tenta a primeira combinação mp4; se não der, tenta o melhor mp4 já pronto; se também não der, pega o melhor disponível
+            options["merge_output_format"] = "mp4" # Arquivo final depois de juntar as duas faixas(aúdio e vídeo)
 
-        options["postprocessors"] = [
-            {
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192"
-            }
-        ]
+        with yt_dlp.YoutubeDL(options) as ydl: # Cria um objeto que faz o trabalho, já com todas as configurações definidas
+            ydl.download([url]) #Inicia o processo de download
+    except Exception as erro:
+        window.write_event_value("-ERRO-", str(erro)) # Envia um envento de erro para janela principal 
+    finally:
+        window.write_event_value("-FIM-"), None
+# INÍCIO APLICAÇÃO 
+sg.theme("DarkGrey13") #Tema do layout
 
-    elif values["VIDEO"] == True:
-
-        options["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]"
-        options["merge_output_format"] = "mp4"
-
-    with yt_dlp.YoutubeDL(options) as ydl:
-        ydl.download([url])
-
-
-sg.theme("DarkGrey13")
-
-sg.set_options(
+sg.set_options( # Cores dos elementos
     text_color="#FFFFFF",
     input_elements_background_color="#FFFFFF",
     input_text_color="#000000",
@@ -100,15 +103,15 @@ sg.set_options(
 layout = [
 
     [
-        sg.Text(
+        sg.Text( # Seleção de formato
             "FORMATO:",
-            justification="center",
+            justification="center",# Formatação do texto 
             expand_x=True
         )
     ],
 
     [
-        sg.Push(),
+        sg.Push(), #Seleção de formato
         sg.Radio("Áudio", "FORMATO", key="AUDIO"),
         sg.Radio("Vídeo", "FORMATO", key="VIDEO"),
         sg.Push()
@@ -116,51 +119,54 @@ layout = [
 
     [
         sg.Text("URL:", size=(4, 1)),
-        sg.Input(key="URL")
+        sg.Input(key="URL") # Entrada URL
     ],
 
     [
         sg.Text("Pasta:", size=(4, 1)),
-        sg.Input(key="PASTA"),
-        sg.FolderBrowse("Escolher")
+        sg.Input(key="PASTA"), # Entrada Pasta
+        sg.FolderBrowse("Escolher") # Abre o explorador de arquivos para selecionar a pasta
     ],
 
     [
         sg.Push(),
-        sg.Button("Baixar"),
+        sg.Button("Baixar"), # Iniciar processo de download
         sg.Push()
     ]
 ]
 
 
-window = sg.Window("YOUTUBE DOWNLOAD", layout)
+window = sg.Window("YOUTUBE DOWNLOAD", layout) # Define a janela
 
 
-while True:
+while True: # Mantém a janela aberta em loop
 
-    event, values = window.read()
+    event, values = window.read() # Registra os eventos de interação com a janela
 
-    if event == sg.WINDOW_CLOSED:
+    if event == sg.WINDOW_CLOSED: # Fecha a aplicação ao clicar no botão "X"(Fechar)
         break
 
-    if event == "Baixar":
+    if event == "Baixar": # Inicia a rotina de download  
+            window["Baixar"].update(disable=True)
+            thread = threading.Thread( # Cria uma thread para executar o código separadamente do loop da interface
+                target=baixarURL, # Passa a referencia para a função de download, sem executa-la imediatamente
+                args=(values,), # Args recebe os valores obtidos no layout(inseridos em um dicionário) e guarda em uma tupla
+                daemon=True # Define a thread como secundaria
+            )
 
-        thread = threading.Thread(
-            target=baixarURL,
-            args=(values,),
-            daemon=True
-        )
-
-        thread.start()
-
+            thread.start() # Inicia a thread(tarefa)
+            
     if event == "-PROGRESSO-":
 
-        arquivos_baixados, num_arquivos = values["-PROGRESSO-"]
+        arquivos_baixados, num_arquivos = values["-PROGRESSO-"] # Os valores obtidios na função progresso são recebidos pelas variaveis
 
-        mostrarBarraProgresso(
+        mostrarBarraProgresso( # Chama a função mostrarBarraProgresso com as variáveis preenchidas com os valores obitidos na função progresso
             num_arquivos,
             arquivos_baixados
         )
-
+    if event == "-ERRO-":
+        sg.popup_error_with_traceback(values["-ERRO-"]) # Mostra mensagem de erro caso ocorra algum problema
+    if event == "-FIM-":
+        window["Baixar"].upadte(disable=False)
 
 window.close()
